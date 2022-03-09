@@ -1,5 +1,7 @@
 from cmath import inf
+from distutils.log import error
 from enum import unique
+from unittest.result import failfast
 import scipy.ndimage
 import numpy as np
 
@@ -12,6 +14,10 @@ PIECE_FILE = "pieces.txt"
 
 SMALLEST_PIECE_SIZE = 5  #TODO: find algorithmically
 
+def convert_to_bitboard(board):
+    bit_board = np.copy(board)
+    bit_board[bit_board > 0] = 1
+    return bit_board
 
 def load_pieces_from_file(piece_file_path):
     pieces_np = []
@@ -65,14 +71,15 @@ def generate_unique_piece_configurations(pieces):
 
 
 def is_board_valid(board):
+    bit_board = convert_to_bitboard(board)
     # anti_board has 0s in occupied spaces, and 1s in empty spaces
-    anti_board = 1 - board
-    labeled_anti_board, _ = scipy.ndimage.label(anti_board)
+    anti_bit_board = 1 - bit_board
+    labeled_anti_board, _ = scipy.ndimage.label(anti_bit_board)
     empty_spaces = scipy.ndimage.find_objects(labeled_anti_board)
     # if we find that there is contiguous empty region smaller than 5,
     # reject the board
     for slices in empty_spaces:
-        if np.sum(anti_board[slices]) < SMALLEST_PIECE_SIZE:
+        if np.sum(anti_bit_board[slices]) < SMALLEST_PIECE_SIZE:
             return False
     # We will check contiguous regions of the same size or higher if needed
     return True  # THIS MAY NOT BE RIGHT
@@ -80,6 +87,7 @@ def is_board_valid(board):
 
 def left_top_most_space(arr, is_board):
     if is_board:
+        arr = convert_to_bitboard(arr)
         arr = 1 - arr
     best_y = inf
     best_x = inf
@@ -100,20 +108,37 @@ def left_top_most_space(arr, is_board):
 
 
 def attempt_piece_placement(board, piece):
-    succeeded = False
-
     board_coords = left_top_most_space(board, True)
     piece_coords = left_top_most_space(piece, False)
 
-    # Check if we will go off the board
     board_rows = board.shape[0]
     board_cols = board.shape[1]
-    piece_rows = board.shape[0]
-    piece_cols = board.shape[1]
+    piece_rows = piece.shape[0]
+    piece_cols = piece.shape[1]
 
-    if piece_coords[0] + piece_rows  > 
+    # Check if we will go off the board
+    if board_coords[0] - piece_coords[0] not in range(0, board_rows)\
+        or board_coords[0] + (piece_rows - piece_coords[0]) not in range(0, board_rows)\
+        or board_coords[1] - piece_coords[1] not in range(0, board_cols)\
+        or board_coords[1] + (piece_cols - piece_coords[1]) not in range(0, board_cols):
+        return False, board
 
-    return succeeded
+    # modified board
+    mod_board = np.copy(board)
+
+    # attempt to copy piece into the new board
+    for i in range(piece_rows):
+        for j in range(piece_cols):
+            y = board_coords[0] + (i - piece_coords[0])
+            x = board_coords[1] + (j - piece_coords[1])
+            assert y >= 0 and x >= 0
+            if mod_board[y,x] != 0:
+                return False, board
+            else:
+                mod_board[y,x] = piece[i,j]
+
+
+    return True, mod_board
 
 
 def recursive_descent(board, pieces_left):
@@ -123,7 +148,17 @@ def recursive_descent(board, pieces_left):
 def main():
     pieces = load_pieces_from_file("pieces.txt")
     unique_configs = generate_unique_piece_configurations(pieces)
-    test_coords = left_top_most_space(unique_configs[4][0], False)
+    #test_coords = left_top_most_space(unique_configs[4][0], False)
+    for config_set in unique_configs:
+        for config in config_set:
+            print(config)
+            succeeded, new_board = attempt_piece_placement(board, config)
+            print(succeeded, end=", ")
+            if succeeded:
+                print(is_board_valid(new_board))
+            else:
+                print("")
+            print("")
     return
 
 
