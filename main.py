@@ -1,16 +1,19 @@
 from cmath import inf
 from distutils.log import error
 from enum import unique
-from unittest.result import failfast
+from math import factorial
+import copy
 import scipy.ndimage
 import numpy as np
+import random
 
 ROWS = 10
 COLS = 6
 board = np.zeros((ROWS, COLS), dtype=int)
 pieces = [] # will be a list of lists of configurations for each piece
 PIECE_FILE = "pieces.txt"
-
+Total_Search_Space = 0
+Remaining_Search_Space = 0
 
 SMALLEST_PIECE_SIZE = 5  #TODO: find algorithmically
 
@@ -49,8 +52,9 @@ def load_pieces_from_file(piece_file_path):
 
 
 def generate_unique_piece_configurations(pieces):
-    pieces_out = []
-    for piece in pieces:
+    pieces_out = {}
+    for i in range(len(pieces)):
+        piece = pieces[i]
         all_configs = []
         all_configs.append(piece)
         for k in range(1,4):
@@ -65,7 +69,7 @@ def generate_unique_piece_configurations(pieces):
             if not any(np.array_equal(config, unique_config) for unique_config in unique_configs):
                 unique_configs.append(config)
 
-        pieces_out.append(unique_configs)
+        pieces_out[i] = unique_configs
 
     return pieces_out
 
@@ -107,7 +111,7 @@ def left_top_most_space(arr, is_board):
     return (best_y, best_x)
 
 
-def attempt_piece_placement(board, piece):
+def attempt_piece_placement(board, piece, piece_number):
     board_coords = left_top_most_space(board, True)
     piece_coords = left_top_most_space(piece, False)
 
@@ -135,30 +139,52 @@ def attempt_piece_placement(board, piece):
             if mod_board[y,x] != 0:
                 return False, board
             else:
-                mod_board[y,x] = piece[i,j]
+                mod_board[y,x] = piece[i,j] * piece_number
 
 
     return True, mod_board
 
+def search_space_size(unique_configs):
+    size = factorial(len(unique_configs))
+    for config_set in unique_configs.values():
+        size *= len(config_set)
 
-def recursive_descent(board, pieces_left):
+    return size
+
+def recursive_descent(board, pieces_left, recursion_depth):
+    global Total_Search_Space
+    global Remaining_Search_Space
+    if len(pieces_left) == 0:
+        print("Solution found!")
+    for i in pieces_left.keys():
+        for j in range(len(pieces_left[i])):
+            config = pieces_left[i][j]
+            succeeded, new_board = attempt_piece_placement(board, config, i + 1)
+            new_pieces_left = copy.deepcopy(pieces_left)
+            new_pieces_left.pop(i)
+            if succeeded and is_board_valid(new_board):
+                recursive_descent(new_board, new_pieces_left, recursion_depth + 1)
+            else:
+                Remaining_Search_Space -= search_space_size(new_pieces_left)
+                if random.randint(0,1000) == 10:
+                    print((Remaining_Search_Space/Total_Search_Space) * 100)
+
+                
+
+
     return
 
 
 def main():
+    global Total_Search_Space
+    global Remaining_Search_Space
     pieces = load_pieces_from_file("pieces.txt")
     unique_configs = generate_unique_piece_configurations(pieces)
-    #test_coords = left_top_most_space(unique_configs[4][0], False)
-    for config_set in unique_configs:
-        for config in config_set:
-            print(config)
-            succeeded, new_board = attempt_piece_placement(board, config)
-            print(succeeded, end=", ")
-            if succeeded:
-                print(is_board_valid(new_board))
-            else:
-                print("")
-            print("")
+    Total_Search_Space = search_space_size(unique_configs)
+    Remaining_Search_Space = Total_Search_Space
+
+    recursive_descent(board, unique_configs, 0)
+
     return
 
 
