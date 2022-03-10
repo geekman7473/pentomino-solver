@@ -1,6 +1,4 @@
 from cmath import inf
-from distutils.log import error
-from enum import unique
 from math import factorial
 import copy
 import scipy.ndimage
@@ -11,9 +9,10 @@ ROWS = 10
 COLS = 6
 board = np.zeros((ROWS, COLS), dtype=int)
 pieces = [] # will be a list of lists of configurations for each piece
-PIECE_FILE = "pieces.txt"
+PIECE_FILE_PATH = "pieces.txt"
 Total_Search_Space = 0
 Remaining_Search_Space = 0
+SOLNS_FILE_PATH = "solns.txt"
 
 SMALLEST_PIECE_SIZE = 5  #TODO: find algorithmically
 
@@ -122,9 +121,9 @@ def attempt_piece_placement(board, piece, piece_number):
 
     # Check if we will go off the board
     if board_coords[0] - piece_coords[0] not in range(0, board_rows)\
-        or board_coords[0] + (piece_rows - piece_coords[0]) not in range(0, board_rows)\
+        or board_coords[0] + ((piece_rows - 1) - piece_coords[0]) not in range(0, board_rows)\
         or board_coords[1] - piece_coords[1] not in range(0, board_cols)\
-        or board_coords[1] + (piece_cols - piece_coords[1]) not in range(0, board_cols):
+        or board_coords[1] + ((piece_cols - 1) - piece_coords[1]) not in range(0, board_cols):
         return False, board
 
     # modified board
@@ -136,11 +135,12 @@ def attempt_piece_placement(board, piece, piece_number):
             y = board_coords[0] + (i - piece_coords[0])
             x = board_coords[1] + (j - piece_coords[1])
             assert y >= 0 and x >= 0
-            if mod_board[y,x] != 0:
+            if piece[i,j] != 0 and mod_board[y,x] != 0:
                 return False, board
-            else:
+            # this covers the conditions where mod_board[y,x] == 1 and piece[i,j] == 0, 
+            # which would overwrite the board with a zero
+            if piece[i,j] != 0:
                 mod_board[y,x] = piece[i,j] * piece_number
-
 
     return True, mod_board
 
@@ -151,26 +151,31 @@ def search_space_size(unique_configs):
 
     return size
 
-def recursive_descent(board, pieces_left, recursion_depth):
+def recursive_descent(board, pieces_left, recursion_depth, solns_file):
     global Total_Search_Space
     global Remaining_Search_Space
     if len(pieces_left) == 0:
         print("Solution found!")
+        print(board)
+        print("------------------------------")
+        solns_file.write(str(board) + "\n")
+        solns_file.write(str((Remaining_Search_Space/Total_Search_Space) * 100) + "%\n")
+        solns_file.write("\n------------------------------\n")
+        solns_file.flush()
+        #quit()
     for i in pieces_left.keys():
         for j in range(len(pieces_left[i])):
             config = pieces_left[i][j]
             succeeded, new_board = attempt_piece_placement(board, config, i + 1)
-            new_pieces_left = copy.deepcopy(pieces_left)
+            new_pieces_left = pieces_left.copy() # This should be faster than copy.deepcopy 
+                                                 # and we also don't need deep copy here
             new_pieces_left.pop(i)
             if succeeded and is_board_valid(new_board):
-                recursive_descent(new_board, new_pieces_left, recursion_depth + 1)
+                recursive_descent(new_board, new_pieces_left, recursion_depth + 1, solns_file)
             else:
                 Remaining_Search_Space -= search_space_size(new_pieces_left)
-                if random.randint(0,1000) == 10:
+                if random.randint(0,10000) == 10:
                     print((Remaining_Search_Space/Total_Search_Space) * 100)
-
-                
-
 
     return
 
@@ -183,7 +188,8 @@ def main():
     Total_Search_Space = search_space_size(unique_configs)
     Remaining_Search_Space = Total_Search_Space
 
-    recursive_descent(board, unique_configs, 0)
+    solns_file = open(SOLNS_FILE_PATH, "w")
+    recursive_descent(board, unique_configs, 0, solns_file)
 
     return
 
