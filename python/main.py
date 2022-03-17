@@ -13,6 +13,7 @@ PIECE_FILE_PATH = "pieces.txt"
 Total_Search_Space = 0
 Remaining_Search_Space = 0
 SOLNS_FILE_PATH = "solns.txt"
+solns_found = 0
 
 SMALLEST_PIECE_SIZE = 5  #TODO: find algorithmically
 
@@ -154,6 +155,7 @@ def search_space_size(unique_configs):
 def recursive_descent(board, pieces_left, recursion_depth, solns_file):
     global Total_Search_Space
     global Remaining_Search_Space
+    global solns_found
     if len(pieces_left) == 0:
         print("Solution found!")
         print(board)
@@ -162,7 +164,9 @@ def recursive_descent(board, pieces_left, recursion_depth, solns_file):
         solns_file.write(str((Remaining_Search_Space/Total_Search_Space) * 100) + "%\n")
         solns_file.write("\n------------------------------\n")
         solns_file.flush()
-        #quit()
+        solns_found += 1
+        if solns_found == 100:
+            quit()
     for i in pieces_left.keys():
         for j in range(len(pieces_left[i])):
             config = pieces_left[i][j]
@@ -174,8 +178,8 @@ def recursive_descent(board, pieces_left, recursion_depth, solns_file):
                 recursive_descent(new_board, new_pieces_left, recursion_depth + 1, solns_file)
             else:
                 Remaining_Search_Space -= search_space_size(new_pieces_left)
-                if random.randint(0,10000) == 10:
-                    print((Remaining_Search_Space/Total_Search_Space) * 100)
+                #if random.randint(0,10000) == 10:
+                    #print((Remaining_Search_Space/Total_Search_Space) * 100)
 
     return
 
