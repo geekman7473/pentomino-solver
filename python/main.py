@@ -85,8 +85,8 @@ def is_board_valid(board):
     empty_spaces = scipy.ndimage.find_objects(labeled_anti_board)
     # if we find that there is contiguous empty region smaller than 5,
     # reject the board
-    for slices in empty_spaces:
-        if np.sum(anti_bit_board[slices]) % SMALLEST_PIECE_SIZE != 0:
+    for slice in empty_spaces:
+        if np.sum(anti_bit_board[slice]) % SMALLEST_PIECE_SIZE != 0:
             return False
     # We will check contiguous regions of the same size or higher if needed
     return True  # THIS MAY NOT BE RIGHT

@@ -16,6 +16,10 @@ impl Board {
             arr_bool : vec![vec![false; _rows]; _cols]
         }
     }
+
+    pub fn is_valid(&self) -> bool {
+        git 
+    }
 }
 
 impl fmt::Display for Board {
