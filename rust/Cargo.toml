@@ -1,0 +1,6 @@
+[package]
+name = "pentomino_solver" # the name of the package
+version = "0.0.1"    # the current version, obeying semver
+authors = ["Justin <justin@example.com>"]
+
+[dependencies]

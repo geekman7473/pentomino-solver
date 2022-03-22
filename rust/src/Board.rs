@@ -1,9 +1,11 @@
 use std::fmt;
+use piece::Piece;
+use piece::Config;
 
 pub struct Board {
     rows: usize,
     cols: usize,
-    arr: Vec<Vec<u8>>,
+    arr: Vec<Vec<u32>>,
     arr_bool: Vec<Vec<bool>>
 }
 
@@ -12,13 +14,18 @@ impl Board {
         Board {
             rows : _rows,
             cols : _cols,
-            arr : vec![vec![0u8; _rows]; _cols],
+
+            arr : vec![vec![0u32; _rows]; _cols],
             arr_bool : vec![vec![false; _rows]; _cols]
         }
     }
 
     pub fn is_valid(&self) -> bool {
-        git 
+        true
+    }
+
+    pub fn attempt_piece_placement(&self, piece: Piece) -> (bool, Option<Board>) {
+        (true, None)
     }
 }
 
